@@ -6,6 +6,11 @@ This is a lightweight React app that fetches nearby restaurants using the Google
 
 1. Open `index.html` in a modern browser.
 2. Replace `YOUR_API_KEY` inside the file with a valid Google Places API key.
+3. It's best to run a local server so the external scripts load properly:
+   ````bash
+   python3 -m http.server
+   ````
+   Then browse to `http://localhost:8000`.
 
 ## Usage
 
