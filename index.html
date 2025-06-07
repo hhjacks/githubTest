@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Where Should I Eat?</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script crossorigin src="https://unpkg.com/react@17/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <script crossorigin src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div id="root" class="p-4"></div>
+
+  <script type="text/babel">
+    const API_KEY = 'YOUR_API_KEY'; // Replace with your Google Places API key
+
+    function App() {
+      const [location, setLocation] = React.useState(null);
+      const [restaurants, setRestaurants] = React.useState([]);
+      const [selected, setSelected] = React.useState(null);
+      const [error, setError] = React.useState('');
+
+      const getLocation = () => {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => {
+              setLocation({lat: pos.coords.latitude, lng: pos.coords.longitude});
+            },
+            () => {
+              setError('Unable to retrieve your location.');
+            }
+          );
+        } else {
+          setError('Geolocation not supported.');
+        }
+      };
+
+      React.useEffect(() => {
+        if (location) {
+          fetchRestaurants(location.lat, location.lng);
+        }
+      }, [location]);
+
+      const fetchRestaurants = async (lat, lng) => {
+        try {
+          const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=5000&type=restaurant&opennow=true&key=${API_KEY}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          const filtered = (data.results || []).filter(r => r.rating >= 4.0);
+          setRestaurants(filtered);
+          if (filtered.length > 0) {
+            pickRandom(filtered);
+          } else {
+            setError('No restaurants found.');
+          }
+        } catch (e) {
+          setError('Failed to fetch restaurants.');
+        }
+      };
+
+      const pickRandom = (list = restaurants) => {
+        if (!list.length) return;
+        const random = list[Math.floor(Math.random() * list.length)];
+        setSelected(random);
+      };
+
+      const openInMaps = () => {
+        if (selected) {
+          const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selected.name + ' ' + selected.vicinity)}`;
+          window.open(url, '_blank');
+        }
+      };
+
+      return (
+        <div className="max-w-md w-full bg-white rounded shadow p-4 text-center">
+          <h1 className="text-xl font-bold mb-4">Where Should I Eat?</h1>
+          {!location && (
+            <button onClick={getLocation} className="bg-blue-500 text-white px-4 py-2 rounded">
+              Use My Location
+            </button>
+          )}
+          {error && <p className="text-red-500 mt-2">{error}</p>}
+          {restaurants.length > 0 && (
+            <div>
+              {selected && (
+                <div className="border rounded p-4 mt-4">
+                  <h2 className="text-lg font-semibold">{selected.name}</h2>
+                  <p className="text-gray-600">{selected.vicinity}</p>
+                  <p className="text-yellow-500">⭐ {selected.rating}</p>
+                  {selected.photos && selected.photos[0] && (
+                    <img
+                      className="w-full h-48 object-cover rounded mt-2"
+                      src={`https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${selected.photos[0].photo_reference}&key=${API_KEY}`}
+                      alt={selected.name}
+                    />
+                  )}
+                  <button onClick={openInMaps} className="mt-2 text-blue-600 underline">
+                    Open in Google Maps
+                  </button>
+                </div>
+              )}
+              <button onClick={() => pickRandom()} className="bg-green-500 text-white px-4 py-2 rounded mt-4">
+                {selected ? 'Try Again' : 'Spin'}
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<App />, document.getElementById('root'));
+  </script>
+</body>
+</html>
